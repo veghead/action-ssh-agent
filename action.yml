@@ -1,0 +1,24 @@
+name: 'ssh-agent'
+description: 'Configure and run ssh-agent'
+inputs:
+  ssh-private-key: 
+    description: 'List of private keys to load'
+    required: true
+  ssh-auth-sock:
+    description: 'Path for ssh-agent socket'
+  log-public-key:
+    description: 'Log public key fingerprintsi?'
+    required: false
+     default: true
+runs:
+  using: "composite"
+  steps:
+    - name: Run ssh-agent
+      run: action.sh
+      shell: bash
+      env:
+        INPUT_PRIVATE_KEYS: ${{ inputs.ssh-private-key }}
+        INPUT_SSH_AUTH_SOCK_PATH: ${{ inputs.ssh-auth-sock }}
+        INPUT_LOG_PUBLIC_KEY: ${{ inputs.log-public-key }}
+        GITHUB_ACTION_PATH: ${{ github.action_path }}
+
