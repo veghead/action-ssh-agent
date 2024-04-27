@@ -7,7 +7,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - id: fred
-        uses: veghead/action-ssh-agent
+        uses: veghead/action-ssh-agent@v1
         with:
           ssh-private-key: |
             key1
