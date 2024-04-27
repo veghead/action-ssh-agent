@@ -10,7 +10,7 @@ inputs:
   log-public-key:
     description: 'Log public key fingerprints?'
     required: false
-     default: true
+    default: true
 runs:
   using: "composite"
   steps:
