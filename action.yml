@@ -6,8 +6,9 @@ inputs:
     required: true
   ssh-auth-sock:
     description: 'Path for ssh-agent socket'
+    required: false
   log-public-key:
-    description: 'Log public key fingerprintsi?'
+    description: 'Log public key fingerprints?'
     required: false
      default: true
 runs:
