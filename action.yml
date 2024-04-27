@@ -15,7 +15,7 @@ runs:
   using: "composite"
   steps:
     - name: Run ssh-agent
-      run: action.sh
+      run: ${{ github.action_path }}/action.sh
       shell: bash
       env:
         INPUT_PRIVATE_KEYS: ${{ inputs.ssh-private-key }}
