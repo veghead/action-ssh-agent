@@ -1,5 +1,5 @@
 name: 'ssh-agent'
-description: 'Configure and run ssh-agent'
+description: 'Configure and run ssh-agent with private keys'
 inputs:
   ssh-private-key: 
     description: 'List of private keys to load'
