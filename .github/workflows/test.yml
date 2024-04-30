@@ -6,7 +6,7 @@ jobs:
     name: Exercise action
     steps:
       - uses: actions/checkout@v4
-      - id: fred
+        id: fred
       - name: Set up ssh keys
         uses: veghead/action-ssh-agent@v1.0.1
         with:
