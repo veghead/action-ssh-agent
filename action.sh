@@ -56,6 +56,7 @@ do
     then
         ORG_REPO="${BASH_REMATCH[1]}"
         echo "${TYPE} ${PUBLIC}" > "${SSH_DIR}/key-${KID}"
+        ls -lR ${SSH_DIR}
         cat <<EOF >>"${SSH_DIR}/config"
 Host key-${KID}.github.com
     Hostname github.com
@@ -74,3 +75,4 @@ EOF
 done
 
 
+ls -lR ${SSH_DIR}
