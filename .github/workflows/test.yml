@@ -6,7 +6,8 @@ jobs:
     name: Exercise action
     steps:
       - uses: actions/checkout@v4
-        id: fred
+        id: Checkout
+        ssh-key: ${{ secrets.ACTION_SSH_AGENT_SECRET }}
       - name: Set up ssh keys
         uses: veghead/action-ssh-agent@v1.0.1
         with:
