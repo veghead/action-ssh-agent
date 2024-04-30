@@ -18,9 +18,12 @@ then
     SSH_AGENT_ARGS="-a ${INPUT_SSH_AUTH_SOCK_PATH}"
 fi
 
+# Run ssh-agent and export the AUTH/AGENT env variables
 TMP_FILE=$( mktemp )
 ssh-agent ${SSH_AGENT_ARGS} >${TMP_FILE}
 source "${TMP_FILE}"
+echo "SSH_AUTH_SOCK=${SSH_AUTH_SOCK}" >> "${GITHUB_ENV}"
+echo "SSH_AGENT_PID=${SSH_AGENT_PID}" >> "${GITHUB_ENV}"
 rm "${TMP_FILE}"
 
 STATE="NUFFINK"
@@ -56,7 +59,6 @@ do
     then
         ORG_REPO="${BASH_REMATCH[1]}"
         echo "${TYPE} ${PUBLIC}" > "${SSH_HOME}/key-${KID}"
-        ls -lR ${SSH_HOME}
         cat <<EOF >>"${SSH_HOME}/config"
 Host key-${KID}.github.com
     Hostname github.com
@@ -74,5 +76,3 @@ EOF
     fi
 done
 
-
-ls -lR ~
