@@ -3,13 +3,16 @@ on: [push]
 jobs:
   test_action:
     runs-on: ubuntu-latest
-    name: A job to say hello
+    name: Exercise action
     steps:
       - uses: actions/checkout@v4
       - id: fred
+      - name: Set up ssh keys
         uses: veghead/action-ssh-agent@v1.0.1
         with:
           ssh-private-key: |
-            key1
-            key2
-
+            ${{ secrets.BOGUS_SECRET }}
+            ${{ secrets.SUBMODULE_SECRET }}
+      - name: Get submodules
+        shell: bash
+        run: git submodule update --init --recursive
