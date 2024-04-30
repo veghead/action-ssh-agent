@@ -1,5 +1,5 @@
 #!/bin/bash
-#
+# action-ssh-agent
 
 echo "Adding github host keys"
 SSH_HOME="${HOME}/.ssh";
@@ -72,7 +72,7 @@ EOF
 
         let "KID=KID+1"
     else
-        echo "Oops: ${COMMENT}"	
+        echo "Comment for key '${PUBLIC}' does not look like a GitHub repository ssh path. Ignoring."
     fi
 done
 
