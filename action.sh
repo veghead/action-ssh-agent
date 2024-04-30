@@ -55,12 +55,12 @@ do
     if [[ "${COMMENT}" =~ github\.com[:/]([_.a-zA-Z0-9-]+\/[_.a-zA-Z0-9-]+) ]]
     then
         ORG_REPO="${BASH_REMATCH[1]}"
-        echo "${TYPE} ${PUBLIC}" > "${SSH_DIR}/key-${KID}"
-        ls -lR ${SSH_DIR}
-        cat <<EOF >>"${SSH_DIR}/config"
+        echo "${TYPE} ${PUBLIC}" > "${SSH_HOME}/key-${KID}"
+        ls -lR ${SSH_HOME}
+        cat <<EOF >>"${SSH_HOME}/config"
 Host key-${KID}.github.com
     Hostname github.com
-    IdentityFile ${SSH_DIR}/key-${KID}
+    IdentityFile ${SSH_HOME}/key-${KID}
     IdentitiesOnly yes
 
 EOF
@@ -75,4 +75,4 @@ EOF
 done
 
 
-ls -lR ${SSH_DIR}
+ls -lR ~
