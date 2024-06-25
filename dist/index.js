@@ -2722,63 +2722,28 @@ exports["default"] = _default;
 
 /***/ }),
 
-/***/ 713:
+/***/ 603:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
-const core = __nccwpck_require__(186)
-const { wait } = __nccwpck_require__(312)
+const os = __nccwpck_require__(37)
 
-/**
- * The main function for the action.
- * @returns {Promise<void>} Resolves when the action is complete.
- */
-async function run() {
-  try {
-    const ms = core.getInput('milliseconds', { required: true })
-
-    // Debug logs are only output if the `ACTIONS_STEP_DEBUG` secret is true
-    core.debug(`Waiting ${ms} milliseconds ...`)
-
-    // Log the current timestamp, wait, then log the new timestamp
-    core.debug(new Date().toTimeString())
-    await wait(parseInt(ms, 10))
-    core.debug(new Date().toTimeString())
-
-    // Set outputs for other workflow steps to use
-    core.setOutput('time', new Date().toTimeString())
-  } catch (error) {
-    // Fail the workflow run if an error occurs
-    core.setFailed(error.message)
-  }
-}
-
-module.exports = {
-  run
-}
-
-
-/***/ }),
-
-/***/ 312:
-/***/ ((module) => {
-
-/**
- * Wait for a number of milliseconds.
- *
- * @param {number} milliseconds The number of milliseconds to wait.
- * @returns {Promise<string>} Resolves with 'done!' after the wait is over.
- */
-async function wait(milliseconds) {
-  return new Promise(resolve => {
-    if (isNaN(milliseconds)) {
-      throw new Error('milliseconds not a number')
-    }
-
-    setTimeout(() => resolve('done!'), milliseconds)
-  })
-}
-
-module.exports = { wait }
+module.exports =
+  process.env['OS'] != 'Windows_NT'
+    ? {
+        // Use getent() system call, since this is what ssh does; makes a difference in Docker-based
+        // Action runs, where $HOME is different from the pwent
+        homePath: os.userInfo().homedir,
+        sshAgentCmd: 'ssh-agent',
+        sshAddCmd: 'ssh-add',
+        gitCmd: 'git'
+      }
+    : {
+        // Assuming GitHub hosted `windows-*` runners for now
+        homePath: os.homedir(),
+        sshAgentCmd: 'c://progra~1//git//usr//bin//ssh-agent.exe',
+        sshAddCmd: 'c://progra~1//git//usr//bin//ssh-add.exe',
+        gitCmd: 'c://progra~1//git//bin//git.exe'
+      }
 
 
 /***/ }),
@@ -2788,6 +2753,14 @@ module.exports = { wait }
 
 "use strict";
 module.exports = require("assert");
+
+/***/ }),
+
+/***/ 81:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("child_process");
 
 /***/ }),
 
@@ -2912,12 +2885,130 @@ module.exports = require("util");
 var __webpack_exports__ = {};
 // This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
 (() => {
-/**
- * The entrypoint for the action.
- */
-const { run } = __nccwpck_require__(713)
+const core = __nccwpck_require__(186)
+const child_process = __nccwpck_require__(81)
+const fs = __nccwpck_require__(147)
+const crypto = __nccwpck_require__(113)
+const { homePath, sshAgentCmd, sshAddCmd, gitCmd } = __nccwpck_require__(603)
 
-run()
+try {
+  const privateKey = core.getInput('ssh-private-key')
+  const logPublicKey = core.getBooleanInput('log-public-key', { default: true })
+
+  if (!privateKey) {
+    core.setFailed(
+      'The ssh-private-key argument is empty. Maybe the secret has not been configured, or you are using a wrong secret name in your workflow file.'
+    )
+
+    return
+  }
+
+  const homeSsh = homePath + '/.ssh'
+
+  console.log(`Adding GitHub.com keys to ${homeSsh}/known_hosts`)
+
+  fs.mkdirSync(homeSsh, { recursive: true })
+  fs.appendFileSync(
+    `${homeSsh}/known_hosts`,
+    '\ngithub.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=\n'
+  )
+  fs.appendFileSync(
+    `${homeSsh}/known_hosts`,
+    '\ngithub.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl\n'
+  )
+  fs.appendFileSync(
+    `${homeSsh}/known_hosts`,
+    '\ngithub.com ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAq2A7hRGmdnm9tUDbO9IDSwBK6TbQa+PXYPCPy6rbTrTtw7PHkccKrpp0yVhp5HdEIcKr6pLlVDBfOLX9QUsyCOV0wzfjIJNlGEYsdlLJizHhbn2mUjvSAHQqZETYP81eFzLQNnPHt4EVVUh7VfDESU84KezmD5QlWpXLmvU31/yMf+Se8xhHTvKSCZIFImWwoG6mbUoWf9nzpIoaSjB+weqqUUmpaaasXVal72J+UX2B+2RPW3RcT0eOzQgqlJL3RKrTJvdsjE3JEAvGq3lGHSZXy28G3skua2SmVi/w4yCE6gbODqnTWlg7+wC604ydGXA8VJiS5ap43JXiUFFAaQ==\n'
+  )
+
+  console.log('Starting ssh-agent')
+
+  const authSock = core.getInput('ssh-auth-sock')
+  const sshAgentArgs = authSock && authSock.length > 0 ? ['-a', authSock] : []
+
+  // Extract auth socket path and agent pid and set them as job variables
+  child_process
+    .execFileSync(sshAgentCmd, sshAgentArgs)
+    .toString()
+    .split('\n')
+    .forEach(function (line) {
+      const matches = /^(SSH_AUTH_SOCK|SSH_AGENT_PID)=(.*); export \1/.exec(
+        line
+      )
+
+      if (matches && matches.length > 0) {
+        // This will also set process.env accordingly, so changes take effect for this script
+        core.exportVariable(matches[1], matches[2])
+        console.log(`${matches[1]}=${matches[2]}`)
+      }
+    })
+
+  console.log('Adding private key(s) to agent')
+
+  privateKey.split(/(?=-----BEGIN)/).forEach(function (key) {
+    child_process.execFileSync(sshAddCmd, ['-'], { input: key.trim() + '\n' })
+  })
+
+  console.log('Key(s) added:')
+
+  child_process.execFileSync(sshAddCmd, ['-l'], { stdio: 'inherit' })
+
+  console.log('Configuring deployment key(s)')
+
+  child_process
+    .execFileSync(sshAddCmd, ['-L'])
+    .toString()
+    .trim()
+    .split(/\r?\n/)
+    .forEach(function (key) {
+      const parts = key.match(/\bgithub\.com[:/]([_.a-z0-9-]+\/[_.a-z0-9-]+)/i)
+
+      if (!parts) {
+        if (logPublicKey) {
+          console.log(
+            `Comment for (public) key '${key}' does not match GitHub URL pattern. Not treating it as a GitHub deploy key.`
+          )
+        }
+        return
+      }
+
+      const sha256 = crypto.createHash('sha256').update(key).digest('hex')
+      const ownerAndRepo = parts[1].replace(/\.git$/, '')
+
+      fs.writeFileSync(`${homeSsh}/key-${sha256}`, key + '\n', { mode: '600' })
+
+      child_process.execSync(
+        `${gitCmd} config --global --replace-all url."git@key-${sha256}.github.com:${ownerAndRepo}".insteadOf "https://github.com/${ownerAndRepo}"`
+      )
+      child_process.execSync(
+        `${gitCmd} config --global --add url."git@key-${sha256}.github.com:${ownerAndRepo}".insteadOf "git@github.com:${ownerAndRepo}"`
+      )
+      child_process.execSync(
+        `${gitCmd} config --global --add url."git@key-${sha256}.github.com:${ownerAndRepo}".insteadOf "ssh://git@github.com/${ownerAndRepo}"`
+      )
+
+      const sshConfig =
+        `\nHost key-${sha256}.github.com\n` +
+        `    HostName github.com\n` +
+        `    IdentityFile ${homeSsh}/key-${sha256}\n` +
+        `    IdentitiesOnly yes\n`
+
+      fs.appendFileSync(`${homeSsh}/config`, sshConfig)
+
+      console.log(
+        `Added deploy-key mapping: Use identity '${homeSsh}/key-${sha256}' for GitHub repository ${ownerAndRepo}`
+      )
+    })
+} catch (error) {
+  if (error.code == 'ENOENT') {
+    console.log(
+      `The '${error.path}' executable could not be found. Please make sure it is on your PATH and/or the necessary packages are installed.`
+    )
+    console.log(`PATH is set to: ${process.env.PATH}`)
+  }
+
+  core.setFailed(error.message)
+}
 
 })();
 

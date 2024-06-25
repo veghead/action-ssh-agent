@@ -1,19 +1,21 @@
-name: 'The name of your action here'
-description: 'Provide a description here'
-author: 'Your name or organization here'
-
-# Define your inputs here.
+name: 'ssh-agent'
+description:
+  'Run `ssh-agent` and load an SSH key to access other private repositories'
 inputs:
-  milliseconds:
-    description: 'Your input description here'
+  ssh-private-key:
+    description: 'Private SSH key to register in the SSH agent'
     required: true
-    default: '1000'
-
-# Define your outputs here.
-outputs:
-  time:
-    description: 'Your output description here'
-
+  ssh-auth-sock:
+    description: 'Where to place the SSH Agent auth socket'
+  log-public-key:
+    description: 'Whether or not to log public key fingerprints'
+    required: false
+    default: true
 runs:
-  using: node20
-  main: dist/index.js
+  using: 'node20'
+  main: 'dist/index.js'
+  post: 'dist/cleanup.js'
+  post-if: 'always()'
+branding:
+  icon: loader
+  color: 'yellow'
