@@ -1,0 +1,20 @@
+on: [push]
+
+jobs:
+  test_action:
+    runs-on: ubuntu-latest
+    name: Exercise action
+    steps:
+      - uses: actions/checkout@v4
+        id: Checkout
+        with:
+          ssh-key: ${{ secrets.ACTION_SSH_AGENT_SECRET }}
+      - name: Set up ssh keys
+        uses: veghead/action-ssh-agent@v1.0.1
+        with:
+          ssh-private-key: |
+            ${{ secrets.BOGUS_SECRET }}
+            ${{ secrets.SUBMODULE_SECRET }}
+      - name: Get submodules
+        shell: bash
+        run: git submodule update --init --recursive
