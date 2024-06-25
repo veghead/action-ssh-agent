@@ -10,7 +10,7 @@ jobs:
         with:
           ssh-key: ${{ secrets.ACTION_SSH_AGENT_SECRET }}
       - name: Set up ssh keys
-        uses: veghead/action-ssh-agent@v1.0.1
+        uses: veghead/action-ssh-agent@v1.0.3
         with:
           ssh-private-key: |
             ${{ secrets.BOGUS_SECRET }}
